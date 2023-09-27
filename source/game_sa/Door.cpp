@@ -8,7 +8,7 @@
 
 #include "Door.h"
 
-float& CDoor::DOOR_SPEED_MAX_CAPPED = *(float*)0x8D3950;
+float& CDoor::DOOR_SPEED_MAX_CAPPED = *(float*)0x8D3950; // 0.5f
 
 // 0x6F4040
 bool CDoor::Process(CVehicle* vehicle, CVector& arg1, CVector& arg2, Const CVector& thisDoorPos) {
@@ -22,22 +22,34 @@ bool CDoor::ProcessImpact(CVehicle* vehicle, CVector& arg1, CVector& arg2, Const
 
 // 0x6F4790
 void CDoor::Open(float openRatio) {
-    plugin::CallMethod<0x6F4790, CDoor*, float>(this, openRatio);
+    m_fPrevAngle = m_fAngle;
+
+    if (openRatio >= 1.f) {
+        m_fAngle = m_fOpenAngle;
+        if (m_nDirn > -1) {
+            m_nDoorState = DOOR_HIT_MAX_END;
+        }
+    } else {
+        m_fAngle = openRatio * m_fOpenAngle;
+        if (m_fAngle == 0.f) {
+            m_fAngVel = 0.f;
+        }
+    }
 }
 
 // 0x6F47E0
 float CDoor::GetAngleOpenRatio() {
-    return plugin::CallMethodAndReturn<float, 0x6F47E0, CDoor*>(this);
+    return m_fOpenAngle ? m_fAngle / m_fOpenAngle : 0.f;
 }
 
 // 0x6F4800
 bool CDoor::IsClosed() {
-    return plugin::CallMethodAndReturn<bool, 0x6F4800, CDoor*>(this);
+    return m_fClosedAngle == m_fAngle;
 }
 
 // 0x6F4820
 bool CDoor::IsFullyOpen() {
-    return plugin::CallMethodAndReturn<bool, 0x6F4820, CDoor*>(this);
+    return abs(m_fOpenAngle) - 0.5 <= abs(m_fAngle);
 }
 
 CVector CDoor::GetRotation() const {
